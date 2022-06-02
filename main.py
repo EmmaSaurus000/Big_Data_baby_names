@@ -7,10 +7,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import style
+import matplotlib.transforms as mtransforms
 from matplotlib import axes
 import matplotlib.patches as mpatches
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
+from pyproj import transform
 
 plt.style.use('dark_background')
 
@@ -104,10 +106,8 @@ def task_1_a():
 
         try:
             fig, ax = plt.subplots()
-            #ax.bar(np.arange(len(most_pop_per_year['Name'])), most_pop_per_year['Count'], label='Number of babies with name', color=colors)
             ax.scatter(most_pop_per_year['Name'], most_pop_per_year['Count'], label='Number of babies with name', color=colors)
             ax.set_xticks(most_pop_per_year['Name'])
-            # ax.set_xticklabels(most_pop_per_year['Name'], rotation=90, fontsize=8)
             plt.setp(ax.get_xticklabels(), rotation=90)
         except Exception as e:
             print('Failed stage 1')
@@ -132,15 +132,11 @@ def task_1_a():
             print(e)
         
         try:
-            # ax.annotate('1947', xy=(0.1, 99689), xycoords='axes fraction', xytext=(0.1, 0.95), textcoords='offset pixels')
             ax.text('Linda', 99689, '1947')
             arr_length = len(annotations)
-            # for i in enumerate(annotations):
             for i in range(0, arr_length):
-                #plt.annotate(annotations[i], (annotations_x[i], annotations_y[i]))
                 if i:
                     text = ax.text(annotations_x[i], annotations_y[i], annotations[i], color='w')
-                    # text = ax.text(annotations_x[i], annotations_y[i], annotations[i], color='w', xytext=(5,5), textcoords='offset pixels')
                 else: print('No i')
         
         except Exception as e:
@@ -188,7 +184,6 @@ def task_1_b():
     plt.subplots_adjust(left=0.15, bottom=0.3)
 
     ax.bar(male_df['Name'], male_df['Sum_by_Sex'], width, color='cornflowerblue')
-    # ax.bar(female_df['Name'], female_df['Sum_by_Sex'], width, bottom=male_df['Sum'], color='violet')
     ax.bar(female_df['Name'], female_df['Sum_by_Sex'], width, color='violet')
     
     ax.set_title('Top 25 All-time most-popular names, US, 1880-2018', y=1.0, pad=20)
@@ -224,7 +219,6 @@ def task_1_c():
     ax.set_xlabel('Year', labelpad=20)
     plt.setp(ax.get_xticklabels(), rotation=90)
     ax.set_ylabel('Number of babies (millions)', labelpad=20)
-    # plt.ylim(1200000,5500000)
 
     plt.savefig('./outputs/Task_1_c.png')
     plt.show()
@@ -245,137 +239,127 @@ def task_2():
 
     try:
         pivoted_df = pd.pivot_table(all_time_df, index="Name", columns="Year", values="Count", fill_value=0)
-        #index_name = pasadena_df.index.name = 'fooyoo'
-        #pasadena_df = pd.pivot_table(pasadena_df, index=["fooyoo", "DATE_YYYYMMDD"], columns="ELEMENT", values="DATA_VALUE")
         print('Pivot_tabled dataframe:')
         print(pivoted_df)
     except Exception as e:
         print('Pivot failed')
         print(e)
 
-    colors = []
     try:
-        for s in gender_df['Sex']:
-            if s == 'F':
-                colors.append('violet')
-            else:
-                colors.append('cornflowerblue')
-    except Exception as e:
-        print('Failed to plot 1_a')
-        print(e)
-
-    fig, ax = plt.subplots(figsize = (14, 7))
-    plt.subplots_adjust(bottom=0.3)
-    ax.scatter(all_time_df['Name'], all_time_df['Year'],s=5) #, color=colors)
-    
-    ax.set_title('Top-10 Baby Names per Year, US, 1880-2018', y=1.0, pad=20)
-    ax.set_xlabel('Name', labelpad=20)
-    plt.setp(ax.get_xticklabels(), rotation=90) 
-    plt.setp(ax.get_yticklabels(), fontsize='10')
-    ax.set_ylabel('Year', labelpad=20)
-
-    plt.savefig('./outputs/Task_2.png')
-    plt.show()
-    plt.close()
-
-    """
-    pivoted_df.to_excel('./outputs/Top-10_names.xlsx')
-    print(all_time_df.head(50))
-
-    # plt.figure(figsize=(15, 15))
-    plt.gcf().set_size_inches(20, 20)
-    plt.scatter(all_time_df['Year'], all_time_df['Name'])
-    plt.set_ylabel(fontsize=10)
-    plt.show()
-    """
-
-    """
-    try:
-        heatmap = plt.imshow(all_time_df)
-        plt.xticks(range(len(all_time_df.columns.values)), all_time_df.columns.values)
-        # plt.yticks(range(len(all_time_df['Name'])), all_time_df['Name'])
-        plt.yticks(range(len(all_time_df['Name'])), all_time_df['Name'])
-        # cbar = plt.colorbar(mappable=heatmap, ticks=[0,1])
-    except Exception as e:
-        print('Problem with heatmap')
-        print(e)
-    """
-
-    """
-
-    all_time_df['set_1'] = all_time_df['Year'].between(1880, 1889, inclusive=True)
-    set_1 = all_time_df.loc[all_time_df['set_1']==True]
-    print('Set 1:')
-    print(set_1)
-
-    try:
-        counts = set_1.to_numpy(dtype=int, copy=True)
-        # counts = np.matrix(counts)
-        # years = set_1['Year'].to_numpy(dtype=int, copy=True)
-        # names = set_1['Name'].to_numpy(dtype=str, copy=True)
+        fig, ax = plt.subplots(figsize = (14, 7))
+        plt.subplots_adjust(bottom=0.3)
+        ax.scatter(all_time_df['Name'], all_time_df['Year'],s=5) #, color=colors)
         
-    except Exception as e:
-        print('Failed to produce heatmap labels')
-        print(e)
+        ax.set_title('Top-10 Baby Names per Year, US, 1880-2018', y=1.0, pad=20)
+        ax.set_xlabel('Name', labelpad=20)
+        plt.setp(ax.get_xticklabels(), rotation=90) 
+        plt.setp(ax.get_yticklabels(), fontsize='10')
+        ax.set_ylabel('Year', labelpad=20)
 
-    try:
-        def valid_imshow_data(data):
-            data = np.asarray(data)
-            if data.ndim == 2:
-                return True
-            elif data.ndim == 3:
-                if 3 <= data.shape[2] <= 4:
-                    return True
-                else:
-                    print('The "data" has 3 dimensions but the last dimension '
-                        'must have a length of 3 (RGB) or 4 (RGBA), not "{}".'
-                        ''.format(data.shape[2]))
-                    return False
-            else:
-                print('To visualize an image the data must be 2 dimensional or '
-                    '3 dimensional, not "{}".'
-                    ''.format(data.ndim))
-                return False
-            
-        valid_imshow_data(counts)
-    except Exception as e:
-        print('Check shape didn\'t work')
-        print(e)
-
-    try:
-        fig, ax = plt.subplots()
-        im = ax.imshow(counts)
-
-        # Show all ticks and label them with the respective list entries
-        # ax.set_xticks(np.arange(len(farmers)), labels=farmers)
-        ax.set_xticks(years, labels=years)
-        # ax.set_yticks(np.arange(len(vegetables)), labels=vegetables)
-        ax.set_yticks(names, labels=names)
-
-        # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-                rotation_mode="anchor")
-    """
-    """
-        try: 
-            # Loop over data dimensions and create text annotations.
-            for i in range(len(names)):
-                for j in range(len(years)):
-                    text = ax.text(j, i, counts[i, j],
-                                ha="center", va="center", color="w")
-        except Exception as e:
-            print('Failed to produce heatmap labels')
-            print(e)
-
-        ax.set_title("Top-10 Baby Names per Year, US, 1880-2018")
-        fig.tight_layout()
         plt.savefig('./outputs/Task_2.png')
         plt.show()
-        
+        plt.close()
     except Exception as e:
-        print('Failed to produce heatmap')
+        print('Failed to produce plot')
         print(e)
-    """
+
+""" Function produces plot of most popular unisex names """
+def task_3():
+    global names_df
+
+    try:
+        all_time_df = names_df
+        all_time_df = all_time_df.sort_values(by=['Name', 'Sex'], ascending=[True, True])
+        all_time_df['Sum'] = all_time_df.groupby('Name')['Count'].transform(sum)
+        all_time_df['Sum_by_Sex'] = all_time_df.groupby(['Name', 'Sex'])['Count'].transform(sum)
+    except Exception as e:
+        print('Failed to create dataframe columns 1')
+        print(e)
+    
+    try:
+        all_time_df['Ratio'] = all_time_df['Sum_by_Sex'] / all_time_df['Sum']
+        #print(all_time_df)
+    except Exception as e:
+        print('Failed to create dataframe columns 2')
+        print(e)
+    
+    try:
+        all_time_df['Unisex'] = all_time_df['Ratio'].between(0.25, 0.75, inclusive='neither')
+    except Exception as e:
+        print('Failed to create dataframe columns 3')
+        print(e)    
+
+    try:
+        all_time_df['Unisex'] = all_time_df['Unisex'].astype('string')
+    except Exception as e:
+        print('Failed to create dataframe columns 4')
+        print(e)
+
+    try: 
+        unisex_df = all_time_df.loc[all_time_df['Unisex'] == 'True']
+        # print('\nUnisex')
+        # print(unisex_df)
+    except Exception as e:
+        print('Failed to create Unisex dataframe columns 4')
+        print(e)
+
+    try:
+        unisex_df = unisex_df.sort_values(by='Sum', ascending=False, inplace=False)
+        # print(unisex_df.head(10))
+    except Exception as e:
+        print('Failed step 5')
+        print(e)
+    
+    try:
+        unique_unisex_df = unisex_df.drop_duplicates(subset=['Name'])
+        unique_unisex_df = unique_unisex_df.head(10)
+        # print('\n Unique')
+        # print(unique_unisex_df)
+    except Exception as e:
+        print('Failed step 6 duplicates')
+        print(e)
+
+    try:
+        name_array = unique_unisex_df['Name'].values.tolist()
+    except Exception as e:
+        print('Failed to write values to list')
+        print(e)
+        
+    try:
+        unisex_df =  unisex_df[unisex_df['Name'].isin(name_array)]
+        female_df = unisex_df.loc[unisex_df['Sex'] == 'F']
+        male_df = unisex_df.loc[unisex_df['Sex'] == 'M']
+        print('\nMale')
+        print(female_df.head(20))
+        print('\nFemale')
+        print(male_df.head(20))
+    except Exception as e:
+        print('Failed to filter on array')
+        print(e)
+
+    try:
+        fig, ax = plt.subplots(figsize = (14, 7))
+        plt.subplots_adjust(bottom=0.3)
+        trans_offset = mtransforms.offset_copy(ax.transData, fig=fig, x=9, y=0, units='dots')
+        ax.scatter(male_df['Name'], male_df['Year'],s=5, color='cornflowerblue')
+        ax.scatter(female_df['Name'], female_df['Year'],s=5, color='violet', transform=trans_offset)
+    except Exception as e:
+        print('Failed to ax.scatter')
+        print(e)
+    
+    try:
+        ax.set_title('Top-10 Unisex Baby Names and Years of Popularity, US, 1880-2018', y=1.0, pad=20)
+        ax.set_xlabel('Name', labelpad=20)
+        plt.setp(ax.get_xticklabels(), rotation=90) 
+        plt.setp(ax.get_yticklabels(), fontsize='10')
+        ax.set_ylabel('Year', labelpad=20)
+
+        plt.savefig('./outputs/Task_3.png')
+        plt.show()
+        plt.close()
+    except Exception as e:
+        print('Failed to produce plot')
+        print(e)
 
 
 def main():
@@ -384,7 +368,8 @@ def main():
     # task_1_a()
     # task_1_b()
     # task_1_c()
-    task_2()
+    # task_2()
+    task_3()
 
 if __name__ == '__main__':
     main()
